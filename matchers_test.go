@@ -37,6 +37,45 @@ func TestRgbaCheckCrop(t *testing.T) {
   }
 }
 
+func TestRgbaCheckMaksedCrop(t *testing.T) {
+  image, err := ReadRgbaPng("test_data/fruits.png")
+  if err != nil {
+    t.Fatal(err)
+  }
+
+  width, height := image.Bounds().Dx(), image.Bounds().Dy()
+  xOffset, yOffset := 200, 400
+  xSize, ySize := 128, 16
+
+  var cropBytes []byte
+  CropRgba(image.Pix, width, height, xOffset, yOffset, xSize, ySize,
+      &cropBytes)
+
+  result := RgbaCheckMaskedCrop(image.Pix, width, height, cropBytes, xSize,
+      ySize, xOffset, yOffset, 0xffffffff)
+  if result != true {
+    t.Error("Did not detect correctly aligned crop: ", result)
+  }
+
+  result = RgbaCheckMaskedCrop(image.Pix, width, height, cropBytes, xSize,
+      ySize, xOffset - 1, yOffset, 0xffffffff)
+  if result != false {
+    t.Error("Did not bounce crop misaligned by (-1, 0): ", result)
+  }
+
+  result = RgbaCheckMaskedCrop(image.Pix, width, height, cropBytes, xSize,
+      ySize, xOffset, yOffset + 1, 0xffffffff)
+  if result != false {
+    t.Error("Did not bounce crop misaligned by (0, +1): ", result)
+  }
+
+  var maskCropBytes []byte
+  CropRgba(image.Pix, width, height, xOffset, yOffset, xSize, ySize,
+      &maskCropBytes)
+  MaskRgba(maskCropBytes, BuildRgbaMask(0xc0e080ff);
+}
+
+
 func TestRgbaCheckCrop_positives(t *testing.T) {
   cases := [][4]int {
     { 0, 0, 16, 8 },
@@ -65,6 +104,7 @@ func TestRgbaCheckCrop_positives(t *testing.T) {
     }
   }
 }
+
 
 func TestRgbaFind(t *testing.T) {
   cases := [][4]int {

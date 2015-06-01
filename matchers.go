@@ -40,6 +40,41 @@ func RgbaCheckCrop(haystack []byte, hayWidth int, hayHeight int,
   return cresult != 0
 }
 
+// RgbaCheckMaskedCrop checks if an image is a crop&mask from another image.
+// This is image pattern-matching, but only aligns the pattern with the image
+// in one predetermined position, and masks the image on the fly. The pattern
+// is assumed to have already been masked.
+func RgbaCheckMaskedCrop(haystack []byte, hayWidth int, hayHeight int,
+    needle []byte, needleWidth int, needleHeight int, needleX int,
+    needleY int, rgbaMask uint32) bool {
+
+  // NOTE: These checks are mainly here to prevent segmentation faults in the
+  //       C code. Therefore, panicing is appropriate.
+  if len(haystack) < hayWidth * hayHeight * 4 {
+    panic("Haystack width and height do not match buffer size")
+  }
+  if len(needle) < needleWidth * needleHeight * 4 {
+    panic("Needle width and height do not match buffer size")
+  }
+
+  // NOTE: These checks are also intended to prevent segmentation faults, but
+  //       we don't have to panic here.
+  if needleX < 0 || needleX + needleWidth > hayWidth {
+    return false
+  }
+  if needleY < 0 || needleY + needleHeight > hayHeight {
+    return false
+  }
+
+  // NOTE: The haystack's height is irrelevant to the actual matching logic,
+  //       so it is omitted.
+  cresult := C.GoRgbaCheckMaskedCrop(unsafe.Pointer(&haystack[0]),
+      unsafe.Pointer(&needle[0]), C.int(hayWidth), C.int(needleWidth),
+      C.int(needleHeight), C.int(needleX), C.int(needleY), rgbaMask)
+  return cresult != 0
+}
+
+
 // HashForRgbaFind computes the needle hash needed by RgbaFind.
 // It returns the hash.
 func HashForRgbaFind(needle []byte, needleWidth int, needleHeight int) uint32 {

@@ -17,6 +17,24 @@ int GoRgbaCheckCrop(void* haystackBytes, void* needleBytes, int hayWidth,
   return 1;
 }
 
+// Accelerates RgbaCheckMaskedCrop.
+int GoRgbaCheckMaskedCrop(void* haystackBytes, void* needleBytes, int hayWidth,
+    int needleWidth, int needleHeight, int needleX, int needleY,
+    uint32_t rgbaMask) {
+  uint32_t* haystackPtr = (uint32_t*)haystackBytes + needleY * hayWidth +
+      needleX;
+  uint32_t* needlePtr = (uint32_t*)needleBytes;
+  int rowJump = hayWidth - needleWidth;
+  for (int y = needleHeight; y > 0; --y) {
+    for (int x = needleWidth; x > 0; --x, ++needlePtr, ++haystackPtr) {
+      if ((*haystackPtr & rgbaMask) != *needlePtr)
+        return 0;
+    }
+    haystackPtr += rowJump;
+  }
+  return 1;
+}
+
 // (a * b) % m
 static inline uint32_t mulMod(uint32_t a, uint32_t b, uint32_t m) {
   return (uint32_t)(((uint64_t)a * b) % m);
