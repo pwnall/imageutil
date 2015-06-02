@@ -20,14 +20,14 @@ int GoRgbaCheckCrop(void* haystackBytes, void* needleBytes, int hayWidth,
 // Accelerates RgbaCheckMaskedCrop.
 int GoRgbaCheckMaskedCrop(void* haystackBytes, void* needleBytes, int hayWidth,
     int needleWidth, int needleHeight, int needleX, int needleY,
-    uint32_t rgbaMask) {
+    uint32_t argbMask) {
   uint32_t* haystackPtr = (uint32_t*)haystackBytes + needleY * hayWidth +
       needleX;
   uint32_t* needlePtr = (uint32_t*)needleBytes;
   int rowJump = hayWidth - needleWidth;
   for (int y = needleHeight; y > 0; --y) {
     for (int x = needleWidth; x > 0; --x, ++needlePtr, ++haystackPtr) {
-      if ((*haystackPtr & rgbaMask) != *needlePtr)
+      if ((*haystackPtr & argbMask) != *needlePtr)
         return 0;
     }
     haystackPtr += rowJump;
@@ -63,7 +63,7 @@ static const uint32_t m = 2000000011;
 // This doesn't really need accelerating, but it's easier to just reuse the
 // code in GoRabinKarp below and keep it in sync than to rewrite the whole
 // thing in Go.
-uint32_t GoHashForRgbaFind(void *needleBytes, int needleWidth,
+uint32_t GoHashForRgbaFindCrop(void *needleBytes, int needleWidth,
     int needleHeight) {
   uint32_t hash = 0;
   for (int x = 0; x < needleWidth; ++x) {
@@ -78,9 +78,9 @@ uint32_t GoHashForRgbaFind(void *needleBytes, int needleWidth,
   return hash;
 }
 
-// Accelerates RgbaFind.
+// Accelerates RgbaFindCrop.
 // The scratch space must point to a buffer of worldWidth uint32_t elements.
-int GoRgbaFind(void* haystackBytes, void *needleBytes, int hayWidth,
+int GoRgbaFindCrop(void* haystackBytes, void *needleBytes, int hayWidth,
     int hayHeight, int needleWidth, int needleHeight, uint32_t needleHash,
     void* scratch, int* matchX, int* matchY) {
   uint32_t* hayPixels = (uint32_t*)haystackBytes;
@@ -173,6 +173,114 @@ int GoRgbaFind(void* haystackBytes, void *needleBytes, int hayWidth,
         int needleY = y - needleHeight + 1;
         if (GoRgbaCheckCrop(haystackBytes, needleBytes, hayWidth, needleWidth,
               needleHeight, needleX, needleY)) {
+          matchCount += 1;
+          *matchX = needleX;
+          *matchY = needleY;
+        }
+      }
+    }
+  }
+
+  return matchCount;
+}
+
+// Accelerates RgbaFindMaskedCrop.
+// The scratch space must point to a buffer of worldWidth uint32_t elements.
+int GoRgbaFindMaskedCrop(void* haystackBytes, void *needleBytes, int hayWidth,
+    int hayHeight, int needleWidth, int needleHeight, uint32_t argbMask,
+    uint32_t needleHash, void* scratch, int* matchX, int* matchY) {
+  uint32_t* hayPixels = (uint32_t*)haystackBytes;
+  uint32_t* chash = (uint32_t*)scratch;  // column hashes
+
+  uint32_t kx_w = 1;  // kx ^ w % m
+  for (int x = 0; x < needleWidth; ++x) {
+    kx_w = (uint32_t)(((uint64_t)kx_w * kx) % m);
+  }
+  uint32_t ky_h = 1;  // ky ^ h % m
+  for (int y = 0; y < needleHeight; ++y) {
+    ky_h = (uint32_t)(((uint64_t)ky_h * ky) % m);
+  }
+
+  memset(chash, 0, sizeof(uint32_t) * hayWidth);
+  for (int y = 0; y < needleHeight; ++y) {
+    uint32_t* row = &hayPixels[y * hayWidth];
+    for (int x = 0; x < hayWidth; ++x) {
+      chash[x] = mulModAdd(chash[x], ky, row[x] & argbMask, m);
+    }
+  }
+
+  int matchCount = 0;
+
+  // Special-case for first row.
+  uint32_t hash = 0;
+  {
+    int x = 0;
+    for (; x < needleWidth; ++x) {
+      hash = mulModAdd(hash, kx, chash[x], m);
+    }
+    if (hash == needleHash) {
+      int needleX = 0;
+      int needleY = 0;
+      if (GoRgbaCheckMaskedCrop(haystackBytes, needleBytes, hayWidth,
+            needleWidth, needleHeight, needleX, needleY, argbMask)) {
+        matchCount += 1;
+        *matchX = needleX;
+        *matchY = needleY;
+      }
+    }
+
+    for (; x < hayWidth; ++x) {
+      hash = mulModAdd(hash, kx, chash[x], m);
+      hash = modSub(hash, mulMod(chash[x - needleWidth], kx_w, m), m);
+
+      if (hash == needleHash) {
+        int needleX = x - needleWidth + 1;
+        int needleY = 0;
+        if (GoRgbaCheckMaskedCrop(haystackBytes, needleBytes, hayWidth,
+              needleWidth, needleHeight, needleX, needleY, argbMask)) {
+          matchCount += 1;
+          *matchX = needleX;
+          *matchY = needleY;
+        }
+      }
+    }
+  }
+
+  for (int y = needleHeight; y < hayHeight; ++y) {
+    uint32_t* row = &hayPixels[y * hayWidth];
+    uint32_t* oldRow = &hayPixels[(y - needleHeight) * hayWidth];
+    hash = 0;
+    for (int x = 0; x < needleWidth; ++x) {
+      chash[x] = mulModAdd(chash[x], ky, row[x] & argbMask, m);
+      chash[x] = modSub(chash[x],
+          mulMod((uint64_t)oldRow[x] & argbMask, ky_h, m), m);
+
+      hash = mulModAdd(hash, kx, chash[x], m);
+    }
+
+    if (hash == needleHash) {
+      int needleX = 0;
+      int needleY = y - needleHeight + 1;
+      if (GoRgbaCheckMaskedCrop(haystackBytes, needleBytes, hayWidth,
+            needleWidth, needleHeight, needleX, needleY, argbMask)) {
+        matchCount += 1;
+        *matchX = needleX;
+        *matchY = needleY;
+      }
+    }
+
+    for (int x = needleWidth; x < hayWidth; ++x) {
+      chash[x] = mulModAdd(chash[x], ky, row[x] & argbMask, m);
+      chash[x] = modSub(chash[x],
+          mulMod((uint64_t)oldRow[x] & argbMask, ky_h, m), m);
+
+      hash = mulModAdd(hash, kx, chash[x], m);
+      hash = modSub(hash, mulMod(chash[x - needleWidth], kx_w, m), m);
+      if (hash == needleHash) {
+        int needleX = x - needleWidth + 1;
+        int needleY = y - needleHeight + 1;
+        if (GoRgbaCheckMaskedCrop(haystackBytes, needleBytes, hayWidth,
+              needleWidth, needleHeight, needleX, needleY, argbMask)) {
           matchCount += 1;
           *matchX = needleX;
           *matchY = needleY;

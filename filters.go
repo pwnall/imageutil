@@ -9,7 +9,7 @@ import (
 
 // BuildMask computes a word mask from a 32-bit RGBA mask.
 // The word mask is intended to be used with the MaskRgba function.
-func BuildMask(rgba uint32) uint64 {
+func BuildRgbaMask(rgba uint32) uint64 {
   // NOTE: Intels are little-endian, so we need to flip the bytes in the word.
   argb := uint64(((rgba & 0xff) << 24) | ((rgba & 0xff00) << 8) |
       ((rgba & 0xff0000) >> 8) | ((rgba & 0xff000000) >> 24))

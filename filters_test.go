@@ -16,7 +16,7 @@ func TestBuildMask(t *testing.T) {
   }
 
   for input, golden := range cases {
-    if output := BuildMask(input); output != golden {
+    if output := BuildRgbaMask(input); output != golden {
       t.Errorf("Got unexpected value %X for input %X\n", output, input)
     }
   }
@@ -31,7 +31,7 @@ func TestMaskRgba(t *testing.T) {
     t.Fatal(err)
   }
 
-  MaskRgba(image.Pix, BuildMask(0xf0e0c0ff))
+  MaskRgba(image.Pix, BuildRgbaMask(0xf0e0c0ff))
   // Save the crop result for debugging.
   RgbaToPng(image.Pix, image.Bounds().Dx(), image.Bounds().Dy(),
       "test_tmp/fruits_RgbaMask.png")
