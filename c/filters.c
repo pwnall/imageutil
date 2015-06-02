@@ -1,5 +1,7 @@
 #include <stdint.h>
 
+#include <stdio.h>
+
 // Accelerates MaskRgba.
 void GoMaskRgba(void* bytes, int byteCount, uint64_t mask) {
   uint64_t* words = (uint64_t*)bytes;
@@ -11,7 +13,6 @@ void GoMaskRgba(void* bytes, int byteCount, uint64_t mask) {
 
 // Accelerates RgbaToHsla.
 void GoRgbaToHsla(void* rgbaBytes, void* hslaBytes, int pixelCount) {
-
   uint8_t *rgbaPixel = (uint8_t*)rgbaBytes;
   uint8_t *hslaPixel = (uint8_t*)hslaBytes;
   for (int i = pixelCount; i > 0; --i, rgbaPixel += 4, hslaPixel += 4) {
@@ -26,35 +27,36 @@ void GoRgbaToHsla(void* rgbaBytes, void* hslaBytes, int pixelCount) {
     if (min > g) min = g;
     if (min > b) min = b;
     int max = r;
-    if (max > g) max = g;
-    if (max > b) max = b;
+    if (max < g) max = g;
+    if (max < b) max = b;
 
-    // L = (min + max) / 2
-    int l = (min + max) >> 1;
-    int s;
-    if (min == max) {
+    int sum = min + max;
+    int diff = max - min;
+    int l = sum >> 1;  // L = (min + max) / 2
+    int h, s;
+    if (diff == 0) {
       s = 0;
+      h = 0;
     } else {
       if (l >= 128) {
-        s = 255 * (max - min) / (510 - max - min);
+        s = 255 * diff / (510 - sum);
       } else {
-        s = 255 * (max - min) / (max + min);
+        s = 255 * diff / sum;
       }
+
+      if (max == r) {
+        h = 42 * (g - b) / diff;
+      } else if (max == g) {
+        h = 84 + 42 * (b - r) / diff;
+      } else {
+        h = 168 + 42 * (r - g) / diff;
+      }
+      if (h < 0) h += 256;
     }
 
-    int h;
-    if (max == r) {
-      h = 42 * (g - b) / (max - min);
-    } else if (max == g) {
-      h = 84 + 42 * (b - r) / (max - min);
-    } else {
-      h = 168 + 42 * (r - g) / (max - min);
-    }
-    if (h < 0) h += 256;
-
-    hslaPixel[0] = h;
-    hslaPixel[1] = s;
-    hslaPixel[2] = l;
+    hslaPixel[0] = (uint8_t)h;
+    hslaPixel[1] = (uint8_t)s;
+    hslaPixel[2] = (uint8_t)l;
     hslaPixel[3] = a;
   }
 }

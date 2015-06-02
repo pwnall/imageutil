@@ -27,7 +27,24 @@ func MaskRgba(rawImage []byte, mask uint64) {
 
 // RgbaToHsla converts an RGBA image to a HSLA image.
 // H, S, and L are in the range 0..255. A is unchanged.
-func RgbaToHsla(rgbaImage []byte, width int, height int, hslaImage []byte) {
+func RgbaToHsla(rgbaImage []byte, hslaImage []byte) {
+  if (cap(hslaImage) < len(rgbaImage)) {
+    panic("HSLA buffer smaller than RGBA image size")
+  }
   C.GoRgbaToHsla(unsafe.Pointer(&rgbaImage[0]), unsafe.Pointer(&hslaImage[0]),
-      C.int(width * height));
+      C.int(len(rgbaImage) / 4));
+}
+
+// RgbPixelToHsl returns the HSL values for a RGB color with 8-bits / channel.
+// It is mostly useful for easy conversion to our custom HSL scheme where H
+// is scaled between 0 and 255.
+func RgbPixelToHsl(red int, green int, blue int) (int, int, int) {
+  argb := uint32(uint32(red) | uint32(green << 8) | uint32(blue << 16))
+  var alsh uint32
+  C.GoRgbaToHsla(unsafe.Pointer(&argb), unsafe.Pointer(&alsh), C.int(1))
+
+  h := int(alsh & 0xff)
+  s := int((alsh >> 8) & 0xff)
+  l := int((alsh >> 16) & 0xff)
+  return h, s, l
 }
