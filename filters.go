@@ -24,3 +24,10 @@ func MaskRgba(rawImage []byte, mask uint64) {
   C.GoMaskRgba(unsafe.Pointer(&rawImage[0]), C.int(len(rawImage)),
       C.uint64_t(mask))
 }
+
+// RgbaToHsla converts an RGBA image to a HSLA image.
+// H, S, and L are in the range 0..255. A is unchanged.
+func RgbaToHsla(rgbaImage []byte, width int, height int, hslaImage []byte) {
+  C.GoRgbaToHsla(unsafe.Pointer(&rgbaImage[0]), unsafe.Pointer(&hslaImage[0]),
+      C.int(width * height));
+}
