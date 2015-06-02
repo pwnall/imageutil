@@ -12,10 +12,10 @@ void GoMaskRgba(void* bytes, int byteCount, uint64_t mask) {
 }
 
 // Accelerates RgbaToHsla.
-void GoRgbaToHsla(void* rgbaBytes, void* hslaBytes, int pixelCount) {
+void GoRgbaToHsla(void* rgbaBytes, void* hslaBytes, int byteCount) {
   uint8_t *rgbaPixel = (uint8_t*)rgbaBytes;
   uint8_t *hslaPixel = (uint8_t*)hslaBytes;
-  for (int i = pixelCount; i > 0; --i, rgbaPixel += 4, hslaPixel += 4) {
+  for (int i = byteCount; i > 0; i -= 4, rgbaPixel += 4, hslaPixel += 4) {
     int r = rgbaPixel[0];
     int g = rgbaPixel[1];
     int b = rgbaPixel[2];
@@ -58,5 +58,25 @@ void GoRgbaToHsla(void* rgbaBytes, void* hslaBytes, int pixelCount) {
     hslaPixel[1] = (uint8_t)s;
     hslaPixel[2] = (uint8_t)l;
     hslaPixel[3] = a;
+  }
+}
+
+// Accelerates RgbaThreshold.
+void GoRgbaThreshold(void* rgbaBytes, int byteCount, uint8_t minR,
+    uint8_t minG, uint8_t minB, uint8_t maxR, uint8_t maxG, uint8_t maxB) {
+  uint8_t *rgbaPixel = (uint8_t*)rgbaBytes;
+  for (int i = byteCount; i > 0; i -= 4, rgbaPixel += 4) {
+    uint8_t r = rgbaPixel[0];
+    uint8_t g = rgbaPixel[1];
+    uint8_t b = rgbaPixel[2];
+
+    uint8_t a;
+    if (r >= minR && g >= minG && b >= minB &&
+        r <= maxR && g <= maxG && b <= maxB) {
+      a = 255;
+    } else {
+      a = 0;
+    }
+    rgbaPixel[3] = a;
   }
 }

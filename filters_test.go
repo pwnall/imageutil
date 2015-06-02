@@ -75,7 +75,7 @@ func TestRgbPixelToHsl(t *testing.T) {
 
 func TestRgbaToHsla(t *testing.T) {
   goldHash :=
-      "bef35a27034ada1a7f35c21e82ba0bb59f8a727f9d6ce04339cb13d800d8570a"
+      "d333fb91aa05709483df2d00f62e3caa91db0be1b30ff72e8e829f3264cb30b9"
 
   image, err := ReadRgbaPng("test_data/fruits.png")
   if err != nil {
@@ -87,6 +87,27 @@ func TestRgbaToHsla(t *testing.T) {
   // Save the crop result for debugging.
   RgbaToPng(hslaBytes, image.Bounds().Dx(), image.Bounds().Dy(),
       "test_tmp/fruits_RgbaToHsla.png")
+
+  hash := sha256.Sum256(image.Pix)
+  hexHash := hex.EncodeToString(hash[:])
+  if hexHash != goldHash {
+    t.Error("Pixel data hash mismatch. Got :", hexHash)
+  }
+}
+
+func TestRgbaThreshold(t *testing.T) {
+  goldHash :=
+      "f5269fde0a591f5525f43e69685955ae056e63b2e348560006efd8994e1f4ee1"
+
+  image, err := ReadRgbaPng("test_data/fruits.png")
+  if err != nil {
+    t.Fatal(err)
+  }
+
+  RgbaThreshold(image.Pix, 170, 200, 170, 200, 70, 140)
+  // Save the crop result for debugging.
+  RgbaToPng(image.Pix, image.Bounds().Dx(), image.Bounds().Dy(),
+      "test_tmp/fruits_RgbaThreshold.png")
 
   hash := sha256.Sum256(image.Pix)
   hexHash := hex.EncodeToString(hash[:])

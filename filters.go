@@ -27,12 +27,13 @@ func MaskRgba(rawImage []byte, mask uint64) {
 
 // RgbaToHsla converts an RGBA image to a HSLA image.
 // H, S, and L are in the range 0..255. A is unchanged.
+// HSLA images can be used with most RGBA processing functions, like RgbaToPng.
 func RgbaToHsla(rgbaImage []byte, hslaImage []byte) {
   if (cap(hslaImage) < len(rgbaImage)) {
     panic("HSLA buffer smaller than RGBA image size")
   }
   C.GoRgbaToHsla(unsafe.Pointer(&rgbaImage[0]), unsafe.Pointer(&hslaImage[0]),
-      C.int(len(rgbaImage) / 4));
+      C.int(len(rgbaImage)));
 }
 
 // RgbPixelToHsl returns the HSL values for a RGB color with 8-bits / channel.
@@ -47,4 +48,14 @@ func RgbPixelToHsl(red int, green int, blue int) (int, int, int) {
   s := int((alsh >> 8) & 0xff)
   l := int((alsh >> 16) & 0xff)
   return h, s, l
+}
+
+// RgbaThreshold sets the alpha channel in image to a threshold function.
+// The function is 1 when the R, G, and B values are between given amounts, and
+// 0 otherwise.
+func RgbaThreshold(rgbaImage []byte, minRed int, maxRed int, minGreen int,
+    maxGreen int, minBlue int, maxBlue int) {
+  C.GoRgbaThreshold(unsafe.Pointer(&rgbaImage[0]), C.int(len(rgbaImage)),
+      C.uint8_t(minRed), C.uint8_t(minGreen), C.uint8_t(minBlue),
+      C.uint8_t(maxRed), C.uint8_t(maxGreen), C.uint8_t(maxBlue))
 }
