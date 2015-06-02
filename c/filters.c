@@ -11,6 +11,7 @@ void GoMaskRgba(void* bytes, int byteCount, uint64_t mask) {
 
 // Accelerates RgbaToHsla.
 void GoRgbaToHsla(void* rgbaBytes, void* hslaBytes, int pixelCount) {
+
   uint8_t *rgbaPixel = (uint8_t*)rgbaBytes;
   uint8_t *hslaPixel = (uint8_t*)hslaBytes;
   for (int i = pixelCount; i > 0; --i, rgbaPixel += 4, hslaPixel += 4) {
@@ -19,6 +20,8 @@ void GoRgbaToHsla(void* rgbaBytes, void* hslaBytes, int pixelCount) {
     int b = rgbaPixel[2];
     int a = rgbaPixel[3];
 
+    // RGB -> HSL formula lifted and adapted for 0-255 from:
+    // http://www.niwa.nu/2013/05/math-behind-colorspace-conversions-rgb-hsl/
     int min = r;
     if (min > g) min = g;
     if (min > b) min = b;
