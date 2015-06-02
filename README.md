@@ -1,8 +1,8 @@
 # imagetools
 
-[![GoDoc](https://godoc.org/github.com/pwnall/imagetools?status.svg)](https://godoc.org/github.com/pwnall/imagetools)
+[![GoDoc](https://godoc.org/github.com/pwnall/imageutil?status.svg)](https://godoc.org/github.com/pwnall/imageutil)
 
-imagetools is a Go package that contains a seemingly random collection of
+imageutil is a Go package that contains a seemingly random collection of
 low-level image processing tools. While the tools have been developed for a
 specific purpose, they are shared in the hope that others will find them
 useful.
