@@ -3,9 +3,9 @@
 
 // Accelerates RgbaCheckCrop.
 int GoRgbaCheckCrop(void* haystackBytes, void* needleBytes, int hayWidth,
-    int needleWidth, int needleHeight, int needleX, int needleY) {
-  uint32_t* haystackRow = (uint32_t*)haystackBytes + needleY * hayWidth +
-      needleX;
+    int needleWidth, int needleHeight, int needleLeft, int needleTop) {
+  uint32_t* haystackRow = (uint32_t*)haystackBytes + needleTop * hayWidth +
+      needleLeft;
   uint32_t* needleRow = (uint32_t*)needleBytes;
   uint32_t needleStride = needleWidth * 4;
   for (int y = needleHeight; y > 0; --y) {
@@ -19,10 +19,10 @@ int GoRgbaCheckCrop(void* haystackBytes, void* needleBytes, int hayWidth,
 
 // Accelerates RgbaCheckMaskedCrop.
 int GoRgbaCheckMaskedCrop(void* haystackBytes, void* needleBytes, int hayWidth,
-    int needleWidth, int needleHeight, int needleX, int needleY,
+    int needleWidth, int needleHeight, int needleLeft, int needleTop,
     uint32_t argbMask) {
-  uint32_t* haystackPtr = (uint32_t*)haystackBytes + needleY * hayWidth +
-      needleX;
+  uint32_t* haystackPtr = (uint32_t*)haystackBytes + needleTop * hayWidth +
+      needleLeft;
   uint32_t* needlePtr = (uint32_t*)needleBytes;
   int rowJump = hayWidth - needleWidth;
   for (int y = needleHeight; y > 0; --y) {
@@ -82,7 +82,7 @@ uint32_t GoHashForRgbaFindCrop(void *needleBytes, int needleWidth,
 // The scratch space must point to a buffer of worldWidth uint32_t elements.
 int GoRgbaFindCrop(void* haystackBytes, void *needleBytes, int hayWidth,
     int hayHeight, int needleWidth, int needleHeight, uint32_t needleHash,
-    void* scratch, int* matchX, int* matchY) {
+    void* scratch, int* matchLeft, int* matchTop) {
   uint32_t* hayPixels = (uint32_t*)haystackBytes;
   uint32_t* chash = (uint32_t*)scratch;  // column hashes
 
@@ -113,13 +113,13 @@ int GoRgbaFindCrop(void* haystackBytes, void *needleBytes, int hayWidth,
       hash = mulModAdd(hash, kx, chash[x], m);
     }
     if (hash == needleHash) {
-      int needleX = 0;
-      int needleY = 0;
+      int needleLeft = 0;
+      int needleTop = 0;
       if (GoRgbaCheckCrop(haystackBytes, needleBytes, hayWidth, needleWidth,
-            needleHeight, needleX, needleY)) {
+            needleHeight, needleLeft, needleTop)) {
         matchCount += 1;
-        *matchX = needleX;
-        *matchY = needleY;
+        *matchLeft = needleLeft;
+        *matchTop = needleTop;
       }
     }
 
@@ -128,13 +128,13 @@ int GoRgbaFindCrop(void* haystackBytes, void *needleBytes, int hayWidth,
       hash = modSub(hash, mulMod(chash[x - needleWidth], kx_w, m), m);
 
       if (hash == needleHash) {
-        int needleX = x - needleWidth + 1;
-        int needleY = 0;
+        int needleLeft = x - needleWidth + 1;
+        int needleTop = 0;
         if (GoRgbaCheckCrop(haystackBytes, needleBytes, hayWidth, needleWidth,
-              needleHeight, needleX, needleY)) {
+              needleHeight, needleLeft, needleTop)) {
           matchCount += 1;
-          *matchX = needleX;
-          *matchY = needleY;
+          *matchLeft = needleLeft;
+          *matchTop = needleTop;
         }
       }
     }
@@ -152,13 +152,13 @@ int GoRgbaFindCrop(void* haystackBytes, void *needleBytes, int hayWidth,
     }
 
     if (hash == needleHash) {
-      int needleX = 0;
-      int needleY = y - needleHeight + 1;
+      int needleLeft = 0;
+      int needleTop = y - needleHeight + 1;
       if (GoRgbaCheckCrop(haystackBytes, needleBytes, hayWidth, needleWidth,
-            needleHeight, needleX, needleY)) {
+            needleHeight, needleLeft, needleTop)) {
         matchCount += 1;
-        *matchX = needleX;
-        *matchY = needleY;
+        *matchLeft = needleLeft;
+        *matchTop = needleTop;
       }
     }
 
@@ -169,13 +169,13 @@ int GoRgbaFindCrop(void* haystackBytes, void *needleBytes, int hayWidth,
       hash = mulModAdd(hash, kx, chash[x], m);
       hash = modSub(hash, mulMod(chash[x - needleWidth], kx_w, m), m);
       if (hash == needleHash) {
-        int needleX = x - needleWidth + 1;
-        int needleY = y - needleHeight + 1;
+        int needleLeft = x - needleWidth + 1;
+        int needleTop = y - needleHeight + 1;
         if (GoRgbaCheckCrop(haystackBytes, needleBytes, hayWidth, needleWidth,
-              needleHeight, needleX, needleY)) {
+              needleHeight, needleLeft, needleTop)) {
           matchCount += 1;
-          *matchX = needleX;
-          *matchY = needleY;
+          *matchLeft = needleLeft;
+          *matchTop = needleTop;
         }
       }
     }
@@ -188,7 +188,7 @@ int GoRgbaFindCrop(void* haystackBytes, void *needleBytes, int hayWidth,
 // The scratch space must point to a buffer of worldWidth uint32_t elements.
 int GoRgbaFindMaskedCrop(void* haystackBytes, void *needleBytes, int hayWidth,
     int hayHeight, int needleWidth, int needleHeight, uint32_t argbMask,
-    uint32_t needleHash, void* scratch, int* matchX, int* matchY) {
+    uint32_t needleHash, void* scratch, int* matchLeft, int* matchTop) {
   uint32_t* hayPixels = (uint32_t*)haystackBytes;
   uint32_t* chash = (uint32_t*)scratch;  // column hashes
 
@@ -219,13 +219,13 @@ int GoRgbaFindMaskedCrop(void* haystackBytes, void *needleBytes, int hayWidth,
       hash = mulModAdd(hash, kx, chash[x], m);
     }
     if (hash == needleHash) {
-      int needleX = 0;
-      int needleY = 0;
+      int needleLeft = 0;
+      int needleTop = 0;
       if (GoRgbaCheckMaskedCrop(haystackBytes, needleBytes, hayWidth,
-            needleWidth, needleHeight, needleX, needleY, argbMask)) {
+            needleWidth, needleHeight, needleLeft, needleTop, argbMask)) {
         matchCount += 1;
-        *matchX = needleX;
-        *matchY = needleY;
+        *matchLeft = needleLeft;
+        *matchTop = needleTop;
       }
     }
 
@@ -234,13 +234,13 @@ int GoRgbaFindMaskedCrop(void* haystackBytes, void *needleBytes, int hayWidth,
       hash = modSub(hash, mulMod(chash[x - needleWidth], kx_w, m), m);
 
       if (hash == needleHash) {
-        int needleX = x - needleWidth + 1;
-        int needleY = 0;
+        int needleLeft = x - needleWidth + 1;
+        int needleTop = 0;
         if (GoRgbaCheckMaskedCrop(haystackBytes, needleBytes, hayWidth,
-              needleWidth, needleHeight, needleX, needleY, argbMask)) {
+              needleWidth, needleHeight, needleLeft, needleTop, argbMask)) {
           matchCount += 1;
-          *matchX = needleX;
-          *matchY = needleY;
+          *matchLeft = needleLeft;
+          *matchTop = needleTop;
         }
       }
     }
@@ -259,13 +259,13 @@ int GoRgbaFindMaskedCrop(void* haystackBytes, void *needleBytes, int hayWidth,
     }
 
     if (hash == needleHash) {
-      int needleX = 0;
-      int needleY = y - needleHeight + 1;
+      int needleLeft = 0;
+      int needleTop = y - needleHeight + 1;
       if (GoRgbaCheckMaskedCrop(haystackBytes, needleBytes, hayWidth,
-            needleWidth, needleHeight, needleX, needleY, argbMask)) {
+            needleWidth, needleHeight, needleLeft, needleTop, argbMask)) {
         matchCount += 1;
-        *matchX = needleX;
-        *matchY = needleY;
+        *matchLeft = needleLeft;
+        *matchTop = needleTop;
       }
     }
 
@@ -277,13 +277,13 @@ int GoRgbaFindMaskedCrop(void* haystackBytes, void *needleBytes, int hayWidth,
       hash = mulModAdd(hash, kx, chash[x], m);
       hash = modSub(hash, mulMod(chash[x - needleWidth], kx_w, m), m);
       if (hash == needleHash) {
-        int needleX = x - needleWidth + 1;
-        int needleY = y - needleHeight + 1;
+        int needleLeft = x - needleWidth + 1;
+        int needleTop = y - needleHeight + 1;
         if (GoRgbaCheckMaskedCrop(haystackBytes, needleBytes, hayWidth,
-              needleWidth, needleHeight, needleX, needleY, argbMask)) {
+              needleWidth, needleHeight, needleLeft, needleTop, argbMask)) {
           matchCount += 1;
-          *matchX = needleX;
-          *matchY = needleY;
+          *matchLeft = needleLeft;
+          *matchTop = needleTop;
         }
       }
     }

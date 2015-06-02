@@ -11,8 +11,8 @@ import (
 // This is image pattern-matching, but only aligns the pattern with the image
 // in one predetermined position.
 func RgbaCheckCrop(haystack []byte, hayWidth int, hayHeight int,
-    needle []byte, needleWidth int, needleHeight int, needleX int,
-    needleY int) bool {
+    needle []byte, needleWidth int, needleHeight int, needleLeft int,
+    needleTop int) bool {
 
   // NOTE: These checks are mainly here to prevent segmentation faults in the
   //       C code. Therefore, panicing is appropriate.
@@ -25,10 +25,10 @@ func RgbaCheckCrop(haystack []byte, hayWidth int, hayHeight int,
 
   // NOTE: These checks are also intended to prevent segmentation faults, but
   //       we don't have to panic here.
-  if needleX < 0 || needleX + needleWidth > hayWidth {
+  if needleLeft < 0 || needleLeft + needleWidth > hayWidth {
     return false
   }
-  if needleY < 0 || needleY + needleHeight > hayHeight {
+  if needleTop < 0 || needleTop + needleHeight > hayHeight {
     return false
   }
 
@@ -36,7 +36,7 @@ func RgbaCheckCrop(haystack []byte, hayWidth int, hayHeight int,
   //       so it is omitted.
   cresult := C.GoRgbaCheckCrop(unsafe.Pointer(&haystack[0]),
       unsafe.Pointer(&needle[0]), C.int(hayWidth), C.int(needleWidth),
-      C.int(needleHeight), C.int(needleX), C.int(needleY))
+      C.int(needleHeight), C.int(needleLeft), C.int(needleTop))
   return cresult != 0
 }
 
@@ -45,8 +45,8 @@ func RgbaCheckCrop(haystack []byte, hayWidth int, hayHeight int,
 // in one predetermined position, and masks the image on the fly. The pattern
 // is assumed to have already been masked.
 func RgbaCheckMaskedCrop(haystack []byte, hayWidth int, hayHeight int,
-    needle []byte, needleWidth int, needleHeight int, needleX int,
-    needleY int, rgbaMask uint32) bool {
+    needle []byte, needleWidth int, needleHeight int, needleLeft int,
+    needleTop int, rgbaMask uint32) bool {
 
   // NOTE: These checks are mainly here to prevent segmentation faults in the
   //       C code. Therefore, panicing is appropriate.
@@ -59,10 +59,10 @@ func RgbaCheckMaskedCrop(haystack []byte, hayWidth int, hayHeight int,
 
   // NOTE: These checks are also intended to prevent segmentation faults, but
   //       we don't have to panic here.
-  if needleX < 0 || needleX + needleWidth > hayWidth {
+  if needleLeft < 0 || needleLeft + needleWidth > hayWidth {
     return false
   }
-  if needleY < 0 || needleY + needleHeight > hayHeight {
+  if needleTop < 0 || needleTop + needleHeight > hayHeight {
     return false
   }
 
@@ -74,7 +74,7 @@ func RgbaCheckMaskedCrop(haystack []byte, hayWidth int, hayHeight int,
   //       so it is omitted.
   cresult := C.GoRgbaCheckMaskedCrop(unsafe.Pointer(&haystack[0]),
       unsafe.Pointer(&needle[0]), C.int(hayWidth), C.int(needleWidth),
-      C.int(needleHeight), C.int(needleX), C.int(needleY),
+      C.int(needleHeight), C.int(needleLeft), C.int(needleTop),
       C.uint32_t(argbMask))
   return cresult != 0
 }
@@ -113,14 +113,14 @@ func RgbaFindCrop(haystack []byte, hayWidth int, hayHeight int, needle []byte,
     panic("Insufficent scratch buffer capacity")
   }
 
-  var cmatchX C.int
-  var cmatchY C.int
+  var cmatchLeft C.int
+  var cmatchTop C.int
   ccount := C.GoRgbaFindCrop(unsafe.Pointer(&haystack[0]),
       unsafe.Pointer(&needle[0]), C.int(hayWidth), C.int(hayHeight),
       C.int(needleWidth), C.int(needleHeight), C.uint32_t(needleHash),
-      unsafe.Pointer(&scratch[0]), &cmatchX, &cmatchY)
+      unsafe.Pointer(&scratch[0]), &cmatchLeft, &cmatchTop)
 
-  return int(ccount), int(cmatchX), int(cmatchY)
+  return int(ccount), int(cmatchLeft), int(cmatchTop)
 }
 
 // RgbaFindMaskedCrop looks for a masked needle image in a hastack image.
@@ -147,12 +147,13 @@ func RgbaFindMaskedCrop(haystack []byte, hayWidth int, hayHeight int,
   argbMask := uint64(((rgbaMask & 0xff) << 24) | ((rgbaMask & 0xff00) << 8) |
       ((rgbaMask & 0xff0000) >> 8) | ((rgbaMask & 0xff000000) >> 24))
 
-  var cmatchX C.int
-  var cmatchY C.int
+  var cmatchLeft C.int
+  var cmatchTop C.int
   ccount := C.GoRgbaFindMaskedCrop(unsafe.Pointer(&haystack[0]),
       unsafe.Pointer(&needle[0]), C.int(hayWidth), C.int(hayHeight),
       C.int(needleWidth), C.int(needleHeight), C.uint32_t(argbMask),
-      C.uint32_t(needleHash), unsafe.Pointer(&scratch[0]), &cmatchX, &cmatchY)
+      C.uint32_t(needleHash), unsafe.Pointer(&scratch[0]), &cmatchLeft,
+      &cmatchTop)
 
-  return int(ccount), int(cmatchX), int(cmatchY)
+  return int(ccount), int(cmatchLeft), int(cmatchTop)
 }
