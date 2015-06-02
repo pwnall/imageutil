@@ -1,7 +1,5 @@
 #include <stdint.h>
 
-#include <stdio.h>
-
 // Accelerates MaskRgba.
 void GoMaskRgba(void* bytes, int byteCount, uint64_t mask) {
   uint64_t* words = (uint64_t*)bytes;
@@ -13,13 +11,14 @@ void GoMaskRgba(void* bytes, int byteCount, uint64_t mask) {
 
 // Accelerates RgbaToHsla.
 void GoRgbaToHsla(void* rgbaBytes, void* hslaBytes, int byteCount) {
-  uint8_t *rgbaPixel = (uint8_t*)rgbaBytes;
-  uint8_t *hslaPixel = (uint8_t*)hslaBytes;
-  for (int i = byteCount; i > 0; i -= 4, rgbaPixel += 4, hslaPixel += 4) {
-    int r = rgbaPixel[0];
-    int g = rgbaPixel[1];
-    int b = rgbaPixel[2];
-    int a = rgbaPixel[3];
+  uint32_t *rgbaPixel = (uint32_t*)rgbaBytes;
+  uint32_t *hslaPixel = (uint32_t*)hslaBytes;
+  for (int i = (byteCount >> 2); i > 0; --i, ++rgbaPixel, ++hslaPixel) {
+    unsigned rgba = *rgbaPixel;
+    int r = rgba & 0xff;
+    int g = (rgba >> 8) & 0xff;
+    int b = (rgba >> 16) & 0xff;
+    unsigned unshiftedA = rgba & 0xff000000;
 
     // RGB -> HSL formula lifted and adapted for 0-255 from:
     // http://www.niwa.nu/2013/05/math-behind-colorspace-conversions-rgb-hsl/
@@ -46,37 +45,34 @@ void GoRgbaToHsla(void* rgbaBytes, void* hslaBytes, int byteCount) {
 
       if (max == r) {
         h = 42 * (g - b) / diff;
+        if (h < 0) h += 256;
       } else if (max == g) {
         h = 84 + 42 * (b - r) / diff;
       } else {
         h = 168 + 42 * (r - g) / diff;
       }
-      if (h < 0) h += 256;
     }
 
-    hslaPixel[0] = (uint8_t)h;
-    hslaPixel[1] = (uint8_t)s;
-    hslaPixel[2] = (uint8_t)l;
-    hslaPixel[3] = a;
+    uint32_t hsla = (uint32_t)((unsigned)h | ((unsigned)s << 8) |
+        ((unsigned)l << 16) | unshiftedA);
+    *hslaPixel = hsla;
   }
 }
 
 // Accelerates RgbaThreshold.
 void GoRgbaThreshold(void* rgbaBytes, int byteCount, uint8_t minR,
     uint8_t minG, uint8_t minB, uint8_t maxR, uint8_t maxG, uint8_t maxB) {
-  uint8_t *rgbaPixel = (uint8_t*)rgbaBytes;
-  for (int i = byteCount; i > 0; i -= 4, rgbaPixel += 4) {
-    uint8_t r = rgbaPixel[0];
-    uint8_t g = rgbaPixel[1];
-    uint8_t b = rgbaPixel[2];
+  uint32_t *rgbaPixel = (uint32_t*)rgbaBytes;
+  for (int i = (byteCount >> 2); i > 0; --i, ++rgbaPixel) {
+    unsigned rgba = *rgbaPixel & 0x00ffffff;
+    uint8_t r = rgba & 0xff;
+    uint8_t g = (rgba >> 8) & 0xff;
+    uint8_t b = rgba >> 16;
 
-    uint8_t a;
     if (r >= minR && g >= minG && b >= minB &&
         r <= maxR && g <= maxG && b <= maxB) {
-      a = 255;
-    } else {
-      a = 0;
+      rgba |= 0xff000000;
     }
-    rgbaPixel[3] = a;
+    *rgbaPixel = rgba;
   }
 }

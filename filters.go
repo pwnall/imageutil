@@ -42,7 +42,7 @@ func RgbaToHsla(rgbaImage []byte, hslaImage []byte) {
 func RgbPixelToHsl(red int, green int, blue int) (int, int, int) {
   argb := uint32(uint32(red) | uint32(green << 8) | uint32(blue << 16))
   var alsh uint32
-  C.GoRgbaToHsla(unsafe.Pointer(&argb), unsafe.Pointer(&alsh), C.int(1))
+  C.GoRgbaToHsla(unsafe.Pointer(&argb), unsafe.Pointer(&alsh), C.int(4))
 
   h := int(alsh & 0xff)
   s := int((alsh >> 8) & 0xff)

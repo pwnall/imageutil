@@ -97,14 +97,14 @@ func TestRgbaToHsla(t *testing.T) {
 
 func TestRgbaThreshold(t *testing.T) {
   goldHash :=
-      "f5269fde0a591f5525f43e69685955ae056e63b2e348560006efd8994e1f4ee1"
+      "c6a7471a2a7f9003ce8080509b8d38709f15827337fac6ec2eb19be9c4670364"
 
   image, err := ReadRgbaPng("test_data/fruits.png")
   if err != nil {
     t.Fatal(err)
   }
 
-  RgbaThreshold(image.Pix, 170, 200, 170, 200, 70, 140)
+  RgbaThreshold(image.Pix, 230, 255, 150, 220, 0, 120)
   // Save the crop result for debugging.
   RgbaToPng(image.Pix, image.Bounds().Dx(), image.Bounds().Dy(),
       "test_tmp/fruits_RgbaThreshold.png")

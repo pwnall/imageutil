@@ -142,7 +142,6 @@ func TestRgbaFindCrop(t *testing.T) {
     }
 
     hash := HashForRgbaFindCrop(cropBytes, xSize, ySize)
-    t.Logf("Needle hash: %d\n", hash)
     count, matchX, matchY := RgbaFindCrop(imageBytes, width, height, cropBytes,
         xSize, ySize, hash, scratch)
     if count != 1 || matchX != xOffset || matchY != yOffset {
@@ -205,7 +204,6 @@ func TestRgbaFindMaskedCrop(t *testing.T) {
     }
 
     hash := HashForRgbaFindCrop(cropBytes, xSize, ySize)
-    t.Logf("Needle hash: %d\n", hash)
     count, matchX, matchY := RgbaFindMaskedCrop(imageBytes, width, height,
         cropBytes, xSize, ySize, rgbaMask, hash, scratch)
     if count != 1 || matchX != xOffset || matchY != yOffset {
