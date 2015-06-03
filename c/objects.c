@@ -64,7 +64,7 @@ int GoRgbaFindPuddle(void* rgbaBytes, void* puddleBytes, int width,
       uint8_t g = (rgba >> 8) & 0xff;
       uint8_t b = (rgba >> 16) & 0xff;
       if (r < minR || g < minG || b < minB ||
-          r > maxR || g > maxG || b <= maxB) {
+          r > maxR || g > maxG || b > maxB) {
         continue;
       }
 
@@ -73,13 +73,16 @@ int GoRgbaFindPuddle(void* rgbaBytes, void* puddleBytes, int width,
         continue;
       }
 
-      int puddleSize = 1;  // Found a puddle.
       uint32_t* puddleIn = (uint32_t*)puddleBytes;
       uint32_t* puddleOut = puddleIn;
       puddleOut[0] = x0;
       puddleOut[1] = y0;
       puddleOut += 2;
       *rgbaPixel0 &= 0x00ffffff;
+      int puddleSize = 1;  // Found a puddle.
+      if (puddleSize == maxPuddleSize) {
+        return puddleSize;
+      }
       while (puddleOut != puddleIn) {
         // NOTE: We're overwriting the for loop variables. This is OK because
         //       we know for sure that we're returning before the loop
@@ -91,13 +94,13 @@ int GoRgbaFindPuddle(void* rgbaBytes, void* puddleBytes, int width,
           for (int dy = -1; dy <= 1; ++dy) {
             int x = dx + x0;
             int y = dy + y0;
-            uint32_t *rgbaPixel = rgbaPixels + dy * width + dx;
+            uint32_t *rgbaPixel = rgbaPixels + y * width + x;
             uint32_t rgba = *rgbaPixel;
             uint8_t r = rgba & 0xff;
             uint8_t g = (rgba >> 8) & 0xff;
             uint8_t b = (rgba >> 16) & 0xff;
             if (r < minR || g < minG || b < minB ||
-                r > maxR || g > maxG || b <= maxB) {
+                r > maxR || g > maxG || b > maxB) {
               continue;
             }
             uint8_t a = (rgba >> 24) & 0xff;

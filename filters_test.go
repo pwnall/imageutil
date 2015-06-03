@@ -1,8 +1,8 @@
 package imageutil
 
 import (
-  "encoding/hex"
   "crypto/sha256"
+  "encoding/hex"
   "testing"
 )
 
@@ -84,7 +84,7 @@ func TestRgbaToHsla(t *testing.T) {
 
   hslaBytes := make([]byte, len(image.Pix))
   RgbaToHsla(image.Pix, hslaBytes)
-  // Save the crop result for debugging.
+  // Save the HSLA conversion result for debugging.
   RgbaToPng(hslaBytes, image.Bounds().Dx(), image.Bounds().Dy(),
       "test_tmp/fruits_RgbaToHsla.png")
 
@@ -105,7 +105,7 @@ func TestRgbaThreshold(t *testing.T) {
   }
 
   RgbaThreshold(image.Pix, 230, 255, 150, 220, 0, 120)
-  // Save the crop result for debugging.
+  // Save the threshold result for debugging.
   RgbaToPng(image.Pix, image.Bounds().Dx(), image.Bounds().Dy(),
       "test_tmp/fruits_RgbaThreshold.png")
 
