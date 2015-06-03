@@ -95,7 +95,7 @@ func TestRgbaFindPuddles(t *testing.T) {
   }
   for i := 0; i < puddleSize; i += 1 {
     x, y := int(puddlePixels[i][0]), int(puddlePixels[i][1])
-    if x >= width || y >= height {
+    if x < 0 || y < 0 || x >= width || y >= height {
       t.Errorf("Puddle pixel out of bounds: %d, %d", x, y)
     } else if image.Pix[4 * (y * width + x) + 3] != 0 {
       t.Errorf("Alpha not zero in puddle pixel: %d, %d", x, y)
@@ -123,7 +123,7 @@ func TestRgbaFindPuddles(t *testing.T) {
   }
   for i := 0; i < puddleSize; i += 1 {
     x, y := int(puddlePixels[i][0]), int(puddlePixels[i][1])
-    if x >= width || y >= height {
+    if x < 0 || y < 0 || x >= width || y >= height {
       t.Errorf("Puddle 2 pixel out of bounds: %d, %d", x, y)
     } else if image.Pix[4 * (y * width + x) + 3] != 0 {
       t.Errorf("Alpha not zero in puddle 2 pixel: %d, %d", x, y)

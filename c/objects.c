@@ -73,8 +73,8 @@ int GoRgbaFindPuddle(void* rgbaBytes, void* puddleBytes, int width,
         continue;
       }
 
-      uint32_t* puddleIn = (uint32_t*)puddleBytes;
-      uint32_t* puddleOut = puddleIn;
+      int32_t* puddleIn = (int32_t*)puddleBytes;
+      int32_t* puddleOut = puddleIn;
       puddleOut[0] = x0;
       puddleOut[1] = y0;
       puddleOut += 2;
