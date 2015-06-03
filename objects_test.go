@@ -1,6 +1,7 @@
 package imageutil
 
 import (
+  "bytes"
   "reflect"
   "sort"
   "testing"
@@ -43,7 +44,7 @@ func TestRgbaFindPillars(t *testing.T) {
 
   pillars := make([][4]int32, 10)
   RgbaFindPillars(image.Pix, image.Bounds().Dx(), image.Bounds().Dy(),
-      230, 255, 150, 220, 0, 120, 10, pillars)
+      230, 255, 150, 220, 0, 120, pillars)
 
   sort.Sort(Pillars(pillars))
   if !reflect.DeepEqual(goldPillars, pillars) {
@@ -51,3 +52,18 @@ func TestRgbaFindPillars(t *testing.T) {
   }
 }
 
+func TestRgbaResetPuddles(t *testing.T) {
+  image, err := ReadRgbaPng("test_data/fruits.png")
+  if err != nil {
+    t.Fatal(err)
+  }
+
+  changedPixels := make([]byte, len(image.Pix))
+  copy(changedPixels, image.Pix)
+  RgbaThreshold(changedPixels, 0, 0, 0, 0, 0, 0);
+
+  RgbaResetPuddles(changedPixels)
+  if !bytes.Equal(changedPixels, image.Pix) {
+    t.Error("Alpha channel not completely restored")
+  }
+}
