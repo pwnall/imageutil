@@ -99,6 +99,63 @@ func TestRgbaCheckMaksedCrop(t *testing.T) {
   }
 }
 
+func TestRgbaDiffMaksedCrop(t *testing.T) {
+  image, err := ReadRgbaPng("test_data/fruits.png")
+  if err != nil {
+    t.Fatal(err)
+  }
+
+  width, height := image.Bounds().Dx(), image.Bounds().Dy()
+  xOffset, yOffset := 200, 400
+  xSize, ySize := 128, 16
+
+  var cropBytes []byte
+  CropRgba(image.Pix, width, height, xOffset, yOffset, xSize, ySize,
+      &cropBytes)
+
+  result := RgbaDiffMaskedCrop(image.Pix, width, height, cropBytes, xSize,
+      ySize, xOffset, yOffset, 0xffffffff)
+  if result != 0 {
+    t.Error("Non-zero diff for identical images: ", result)
+  }
+
+  result = RgbaDiffMaskedCrop(image.Pix, width, height, cropBytes, xSize,
+      ySize, xOffset, yOffset, 0xf0f8fcff)
+  if result != 24644 {
+    t.Error("Incorrect diff for unmasked crop: ", result)
+  }
+
+  var maskCropBytes []byte
+  CropRgba(image.Pix, width, height, xOffset, yOffset, xSize, ySize,
+      &maskCropBytes)
+  MaskRgba(maskCropBytes, BuildRgbaMask(0xf0f8fcff))
+
+  result = RgbaDiffMaskedCrop(image.Pix, width, height, maskCropBytes, xSize,
+      ySize, xOffset, yOffset, 0xf0f8fcff)
+  if result != 0 {
+    t.Error("Non-zero diff for golden crop: ", result)
+  }
+
+  result = RgbaDiffMaskedCrop(image.Pix, width, height, maskCropBytes, xSize,
+      ySize, xOffset, yOffset, 0xffffffff)
+  if result != 24644 {
+    t.Error("Incorect diff for unmasked image: ", result)
+  }
+
+  CropRgba(image.Pix, width, height, xOffset, yOffset, xSize, ySize,
+      &maskCropBytes)
+  for i := 0; i < 8192; i += 1 {
+    if i % 2 == 0 {
+      maskCropBytes[i] ^= 1
+    }
+  }
+  result = RgbaDiffMaskedCrop(image.Pix, width, height, maskCropBytes, xSize,
+      ySize, xOffset, yOffset, 0xffffffff)
+  if result != 4096 {  // 128 * 16 * 2 (G, A)
+    t.Error("Incorect diff for unmasked tweaked image: ", result)
+  }
+}
+
 func TestRgbaFindCrop(t *testing.T) {
   cases := [][4]int {
     { 0, 0, 16, 8 },

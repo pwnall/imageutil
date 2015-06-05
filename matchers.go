@@ -67,7 +67,7 @@ func RgbaCheckMaskedCrop(haystack []byte, hayWidth int, hayHeight int,
   }
 
   // RGBA -> ARGB, because Intel is little-endian.
-  argbMask := uint64(((rgbaMask & 0xff) << 24) | ((rgbaMask & 0xff00) << 8) |
+  argbMask := uint32(((rgbaMask & 0xff) << 24) | ((rgbaMask & 0xff00) << 8) |
       ((rgbaMask & 0xff0000) >> 8) | ((rgbaMask & 0xff000000) >> 24))
 
   // NOTE: The haystack's height is irrelevant to the actual matching logic,
@@ -77,6 +77,43 @@ func RgbaCheckMaskedCrop(haystack []byte, hayWidth int, hayHeight int,
       C.int(needleHeight), C.int(needleLeft), C.int(needleTop),
       C.uint32_t(argbMask))
   return cresult != 0
+}
+
+// RgbaDiffMaskedCrop diffs an image with a crop&mask another image.
+// It returns the sum of absolute pixel differences.
+func RgbaDiffMaskedCrop(haystack []byte, hayWidth int, hayHeight int,
+    needle []byte, needleWidth int, needleHeight int, needleLeft int,
+    needleTop int, rgbaMask uint32) int64 {
+
+  // NOTE: These checks are mainly here to prevent segmentation faults in the
+  //       C code. Therefore, panicing is appropriate.
+  if len(haystack) < hayWidth * hayHeight * 4 {
+    panic("Haystack width and height do not match buffer size")
+  }
+  if len(needle) < needleWidth * needleHeight * 4 {
+    panic("Needle width and height do not match buffer size")
+  }
+
+  // NOTE: These checks are also intended to prevent segmentation faults, but
+  //       we don't have to panic here.
+  if needleLeft < 0 || needleLeft + needleWidth > hayWidth {
+    return 0
+  }
+  if needleTop < 0 || needleTop + needleHeight > hayHeight {
+    return 0
+  }
+
+  // RGBA -> ARGB, because Intel is little-endian.
+  argbMask := uint32(((rgbaMask & 0xff) << 24) | ((rgbaMask & 0xff00) << 8) |
+      ((rgbaMask & 0xff0000) >> 8) | ((rgbaMask & 0xff000000) >> 24))
+
+  // NOTE: The haystack's height is irrelevant to the actual matching logic,
+  //       so it is omitted.
+  cresult := C.GoRgbaDiffMaskedCrop(unsafe.Pointer(&haystack[0]),
+      unsafe.Pointer(&needle[0]), C.int(hayWidth), C.int(needleWidth),
+      C.int(needleHeight), C.int(needleLeft), C.int(needleTop),
+      C.uint32_t(argbMask))
+  return int64(cresult)
 }
 
 // HashForRgbaFindCrop computes the needle hash needed by RgbaFind.
@@ -144,7 +181,7 @@ func RgbaFindMaskedCrop(haystack []byte, hayWidth int, hayHeight int,
   }
 
   // RGBA -> ARGB, because Intel is little-endian.
-  argbMask := uint64(((rgbaMask & 0xff) << 24) | ((rgbaMask & 0xff00) << 8) |
+  argbMask := uint32(((rgbaMask & 0xff) << 24) | ((rgbaMask & 0xff00) << 8) |
       ((rgbaMask & 0xff0000) >> 8) | ((rgbaMask & 0xff000000) >> 24))
 
   var cmatchLeft C.int

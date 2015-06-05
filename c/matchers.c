@@ -35,6 +35,50 @@ int GoRgbaCheckMaskedCrop(void* haystackBytes, void* needleBytes, int hayWidth,
   return 1;
 }
 
+// Accelerates RgbaDiffMaskedCrop.
+int64_t GoRgbaDiffMaskedCrop(void* haystackBytes, void* needleBytes,
+    int hayWidth, int needleWidth, int needleHeight, int needleLeft,
+    int needleTop, uint32_t argbMask) {
+  uint32_t* haystackPtr = (uint32_t*)haystackBytes + needleTop * hayWidth +
+      needleLeft;
+  uint32_t* needlePtr = (uint32_t*)needleBytes;
+  int rowJump = hayWidth - needleWidth;
+  int64_t diff = 0;
+  for (int y = needleHeight; y > 0; --y) {
+    for (int x = needleWidth; x > 0; --x, ++needlePtr, ++haystackPtr) {
+      uint32_t hrgba = (*haystackPtr & argbMask);
+      uint32_t nrgba = *needlePtr;
+      int hchannel, nchannel;
+
+      // Red.
+      hchannel = hrgba & 0xff; hrgba >>= 8;
+      nchannel = nrgba & 0xff; nrgba >>= 8;
+      diff += (hchannel >= nchannel) ?
+          hchannel - nchannel : nchannel - hchannel;
+
+      // Green.
+      hchannel = hrgba & 0xff; hrgba >>= 8;
+      nchannel = nrgba & 0xff; nrgba >>= 8;
+      diff += (hchannel >= nchannel) ?
+          hchannel - nchannel : nchannel - hchannel;
+
+      // Blue.
+      hchannel = hrgba & 0xff; hrgba >>= 8;
+      nchannel = nrgba & 0xff; nrgba >>= 8;
+      diff += (hchannel >= nchannel) ?
+          hchannel - nchannel : nchannel - hchannel;
+
+      // Alpha.
+      hchannel = hrgba;
+      nchannel = nrgba;
+      diff += (hchannel >= nchannel) ?
+          hchannel - nchannel : nchannel - hchannel;
+    }
+    haystackPtr += rowJump;
+  }
+  return diff;
+}
+
 // (a * b) % m
 static inline uint32_t mulMod(uint32_t a, uint32_t b, uint32_t m) {
   return (uint32_t)(((uint64_t)a * b) % m);
