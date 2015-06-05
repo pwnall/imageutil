@@ -29,7 +29,7 @@ func MaskRgba(rawImage []byte, mask uint64) {
 // H, S, and L are in the range 0..255. A is unchanged.
 // HSLA images can be used with most RGBA processing functions, like RgbaToPng.
 func RgbaToHsla(rgbaImage []byte, hslaImage []byte) {
-  if (cap(hslaImage) < len(rgbaImage)) {
+  if cap(hslaImage) < len(rgbaImage) {
     panic("HSLA buffer smaller than RGBA image size")
   }
   C.GoRgbaToHsla(unsafe.Pointer(&rgbaImage[0]), unsafe.Pointer(&hslaImage[0]),
