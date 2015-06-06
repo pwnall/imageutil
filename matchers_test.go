@@ -156,6 +156,51 @@ func TestRgbaDiffMaksedCrop(t *testing.T) {
   }
 }
 
+func TestRgbaDiffThresholdCrop(t *testing.T) {
+  image, err := ReadRgbaPng("test_data/fruits.png")
+  if err != nil {
+    t.Fatal(err)
+  }
+
+  width, height := image.Bounds().Dx(), image.Bounds().Dy()
+  xOffset, yOffset := 200, 400
+  xSize, ySize := 128, 16
+
+  var cropBytes []byte
+  CropRgba(image.Pix, width, height, xOffset, yOffset, xSize, ySize,
+      &cropBytes)
+
+  result := RgbaDiffThresholdCrop(image.Pix, width, height, cropBytes, xSize,
+      ySize, xOffset, yOffset, 0, 255, 0, 255, 0, 255)
+  if result != 0 {
+    t.Error("Non-zero diff for golden crop without thresholds: ", result)
+  }
+
+  result = RgbaDiffThresholdCrop(image.Pix, width, height, cropBytes, xSize,
+      ySize, xOffset, yOffset, 0, 160, 0, 160, 0, 100)
+  if result != 1127 {
+    t.Error("Incorrect diff for golden crop with thresholds: ", result)
+  }
+
+  var maskCropBytes []byte
+  CropRgba(image.Pix, width, height, xOffset, yOffset, xSize, ySize,
+      &maskCropBytes)
+  RgbaThreshold(maskCropBytes, 0, 160, 0, 160, 0, 100)
+
+  result = RgbaDiffThresholdCrop(image.Pix, width, height, maskCropBytes,
+      xSize, ySize, xOffset, yOffset, 0, 160, 0, 160, 0, 100)
+  if result != 0 {
+    t.Error("Non-zero diff for thresholded crop: ", result)
+  }
+
+  result = RgbaDiffThresholdCrop(image.Pix, width, height, maskCropBytes,
+      xSize, ySize, xOffset, yOffset, 0, 255, 0, 255, 0, 255)
+  if result != 1127 {
+    t.Error("Incorect diff for thresholded crop vs non-thresholded image: ",
+        result)
+  }
+}
+
 func TestRgbaFindCrop(t *testing.T) {
   cases := [][4]int {
     { 0, 0, 16, 8 },

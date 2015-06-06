@@ -79,7 +79,7 @@ func RgbaCheckMaskedCrop(haystack []byte, hayWidth int, hayHeight int,
   return cresult != 0
 }
 
-// RgbaDiffMaskedCrop diffs an image with a crop&mask another image.
+// RgbaDiffMaskedCrop diffs an image with a crop&mask of another image.
 // It returns the sum of absolute pixel differences.
 func RgbaDiffMaskedCrop(haystack []byte, hayWidth int, hayHeight int,
     needle []byte, needleWidth int, needleHeight int, needleLeft int,
@@ -115,6 +115,41 @@ func RgbaDiffMaskedCrop(haystack []byte, hayWidth int, hayHeight int,
       C.uint32_t(argbMask))
   return int64(cresult)
 }
+
+// RgbaDiffThresholdCrop diffs an image with a crop&threshold of another image.
+// It returns the sum of absolute pixel differences.
+func RgbaDiffThresholdCrop(haystack []byte, hayWidth int, hayHeight int,
+    needle []byte, needleWidth int, needleHeight int, needleLeft int,
+    needleTop int, minRed int, maxRed int, minGreen int, maxGreen int,
+    minBlue int, maxBlue int) int {
+  // NOTE: These checks are mainly here to prevent segmentation faults in the
+  //       C code. Therefore, panicing is appropriate.
+  if len(haystack) < hayWidth * hayHeight * 4 {
+    panic("Haystack width and height do not match buffer size")
+  }
+  if len(needle) < needleWidth * needleHeight * 4 {
+    panic("Needle width and height do not match buffer size")
+  }
+
+  // NOTE: These checks are also intended to prevent segmentation faults, but
+  //       we don't have to panic here.
+  if needleLeft < 0 || needleLeft + needleWidth > hayWidth {
+    return 0
+  }
+  if needleTop < 0 || needleTop + needleHeight > hayHeight {
+    return 0
+  }
+
+  // NOTE: The haystack's height is irrelevant to the actual matching logic,
+  //       so it is omitted.
+  cresult := C.GoRgbaDiffThresholdCrop(unsafe.Pointer(&haystack[0]),
+      unsafe.Pointer(&needle[0]), C.int(hayWidth), C.int(needleWidth),
+      C.int(needleHeight), C.int(needleLeft), C.int(needleTop),
+      C.uint8_t(minRed), C.uint8_t(minGreen), C.uint8_t(minBlue),
+      C.uint8_t(maxRed), C.uint8_t(maxGreen), C.uint8_t(maxBlue))
+  return int(cresult)
+}
+
 
 // HashForRgbaFindCrop computes the needle hash needed by RgbaFind.
 // It returns the hash.

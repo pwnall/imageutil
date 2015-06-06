@@ -79,6 +79,41 @@ int64_t GoRgbaDiffMaskedCrop(void* haystackBytes, void* needleBytes,
   return diff;
 }
 
+// Accelerates RgbaDiffThresholdCrop.
+int GoRgbaDiffThresholdCrop(void* haystackBytes, void* needleBytes,
+    int hayWidth, int needleWidth, int needleHeight, int needleLeft,
+    int needleTop,  uint8_t minR, uint8_t minG, uint8_t minB, uint8_t maxR,
+    uint8_t maxG, uint8_t maxB) {
+  uint32_t* haystackPtr = (uint32_t*)haystackBytes + needleTop * hayWidth +
+      needleLeft;
+  uint32_t* needlePtr = (uint32_t*)needleBytes;
+  int rowJump = hayWidth - needleWidth;
+  int diff = 0;
+  for (int y = needleHeight; y > 0; --y) {
+    for (int x = needleWidth; x > 0; --x, ++needlePtr, ++haystackPtr) {
+      uint32_t hrgba = *haystackPtr;
+      uint8_t hr = hrgba & 0xff; hrgba >>= 8;
+      uint8_t hg = hrgba & 0xff; hrgba >>= 8;
+      uint8_t hb = hrgba & 0xff;
+      uint8_t ha = (hr >= minR && hg >= minG && hb >= minB &&
+        hr <= maxR && hg <= maxG && hb <= maxB) ? 0xff : 0;
+
+      uint32_t nrgba = *needlePtr;
+      uint8_t nr = nrgba & 0xff; nrgba >>= 8;
+      uint8_t ng = nrgba & 0xff; nrgba >>= 8;
+      uint8_t nb = nrgba & 0xff; nrgba >>= 8;
+      uint8_t na = nrgba;
+
+      if (ha != na)
+        diff += 1;
+    }
+    haystackPtr += rowJump;
+  }
+  return diff;
+}
+
+
+
 // (a * b) % m
 static inline uint32_t mulMod(uint32_t a, uint32_t b, uint32_t m) {
   return (uint32_t)(((uint64_t)a * b) % m);
